@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+
+</body>
+<script>
+
+
+//Uint32Array
+
+// const testLength = 1000 * 100//  100 thousand
+const testLength = 1000 * 1000//  1 million
+// const testLength = 1000 * 1000 * 10//  10 million
+
+const primes = new Uint32Array( Math.ceil( testLength / 10 ))
+let primesIndex = 0
+
+primes[ primesIndex ] = 2
+
+console.log( primesIndex + 1, primes[ 0 ] )
+
+const startedAt = window.performance.now()
+for( let n = 3; n < testLength; n ++ ){
+
+	let isPrime = true
+	for( let p = 0; p < primesIndex + 1; p ++ ){
+		
+		if( n % primes[ p ] === 0 ){
+
+			isPrime = false
+			break
+		}
+	}
+	if( isPrime ){
+
+		primesIndex ++
+		primes[ primesIndex ] = n
+		// console.log( primesIndex + 1, n )
+	}
+}
+
+const 
+endedAt = window.performance.now(),
+timeDelta = endedAt - startedAt
+
+console.log( 
+
+	'Found', ( primesIndex + 1 ).toLocaleString(), 'primes', 
+	'under', ( testLength ).toLocaleString(),
+	'in', timeDelta / 1000, 'seconds.'
+)
+
+/*
+
+
+Found 9,592 primes under 100,000 in 0.16287499999452848 seconds.
+Found 78,498 primes under 1,000,000 in 9.867939999996452 seconds.
+
+
+
+*/
+
+
+</script>
+</html>

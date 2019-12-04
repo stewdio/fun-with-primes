@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+
+</body>
+<script>
+
+
+const
+testRange = 1000 * 100//  100 thousand ~ 0.2 seconds . 9593
+// testRange = 1000 * 1000//  1 million ~ 8.25 seconds . 78500
+// testRange = 1000 * 1000 * 10//  10 million ~ 10 minutes . 664580
+
+
+const primes = new Uint32Array( 78500 )
+let primesIndex = 0
+primes[ primesIndex + 1 ] = 2
+
+
+
+
+
+// console.log( primesIndex, primes[ 0 ] )
+
+console.log( '\nStarted at\n', new Date() )
+const startedAt = window.performance.now()
+
+
+
+
+for( let n = 3; n < testRange; n ++ ){
+
+	let p = 0
+	while( p < primesIndex ){
+
+		if( n % primes[ p ] === 0 ) break
+		p ++
+	}
+	if( p === primesIndex ){
+
+		primes[ primesIndex ] = n
+		primesIndex ++
+	}
+}
+
+
+
+
+const
+endedAt = window.performance.now(),
+totalDelta = endedAt - startedAt,
+minutesDelta = Math.floor( totalDelta / 60000 ),
+secondsDelta = totalDelta - ( minutesDelta * 60000 ),
+secondsDeltaRounded = Math.round( secondsDelta ) / 1000
+
+
+console.log( '\nEnded at\n', new Date() )
+console.log( 
+
+	'\nFound', ( primesIndex + 1 ).toLocaleString(), 'primes', 
+	'under', ( testRange ).toLocaleString(),
+	'in', minutesDelta, 'minutes and', secondsDeltaRounded, 'seconds.'
+)
+
+
+
+
+// Found  9,592 primes under   100,000 in 0 minutes and 0.145 seconds.
+// Found 78,498 primes under 1,000,000 in 0 minutes and 8.152 seconds.
+
+/*
+
+WHY IS A UINT ARRAY SLOWER???
+
+Found  9,593 primes under   100,000 in 0 minutes and  0.220 seconds.
+Found 78,499 primes under 1,000,000 in 0 minutes and 13.049 seconds.
+
+
+
+*/
+
+
+
+
+
+</script>
+</html>

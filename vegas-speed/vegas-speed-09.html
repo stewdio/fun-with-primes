@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<script>
+
+
+
+
+//  Search range is 1 million.
+//  Expecting 78,498 primes.
+//  Best results so far: 0.055 seconds
+
+// const searchRange = 1000 * 1000
+
+
+
+
+//  Search range is 10 million.
+//  Expecting 664,579 primes.
+//  Best results so far: 0.893 seconds.
+
+const searchRange = 1000 * 1000 * 10
+
+
+
+
+//  Search range is 100 million.
+//  Expecting 5,761,455 primes.
+//  Best results so far: 18.821 seconds.
+
+// const searchRange = 1000 * 1000 * 100
+
+
+
+
+//  Search range is 1 billion.
+//  Expecting 50,847,534 primes.
+//  Best results so far: 7.9 minutes.
+
+// const searchRange = 1000 * 1000 * 1000
+
+
+
+
+//  All found primes will be stored in this array.
+//  We’ll feed it a single value: 2. 
+
+const primes = [ 2 ]
+
+
+
+
+const run = function( searchRange ){
+
+	console.log( 'Searching for primes lower than', searchRange.toLocaleString() )
+	console.log( '\nStarted at\n', new Date() )
+	const startedAt = window.performance.now()
+
+
+	for( let n = 3; n < searchRange; n += 2 ){
+
+		let 
+		priorPrime = 2,
+		isPrime = true,
+		p = 1
+		
+		while( p < primes.length - 1 ){ 
+
+			
+			//  It’s unclear to me if setting this variable
+			//  instead of repeatedly requesting primes[ p ]
+			//  is faster or slower. Truly seems neglible.
+
+			let prime = primes[ p ]
+			
+
+			//  Multiplying a number againt itself is faster than Math.pow().
+			//  And all of this is WAY faster than Math.sqrt( n ).
+			
+			if( priorPrime * priorPrime > n ) break
+
+
+			//  If this number n can be evenly divided 
+			//  by this previously discovered prime
+			//  then n is not a prime.
+			//  Using modulo is so much faster than full division!!
+			//  And therefore is faster than comparing quotient, q, to 
+			//  Math.round( q ) or parseInt( q, 10 ).
+			
+			if( n % prime === 0 ){ isPrime = false; break }
+			
+
+			//  We need to do this instead of just calling primes[ p - 1 ]
+			//  because there seems to be significant overhead
+			//  in moving the array’s pointer!! WTF?!
+
+			priorPrime = prime
+
+
+			//  Ready to increment in preparation for the next loop.
+
+			p ++
+		}
+
+
+		//  Seems to be no different at all between using .push( n )
+		//  and directly setting primes[ primes.length ] = n.
+		
+		if( isPrime ) primes.push( n )
+	}
+
+
+
+
+	const
+	endedAt = window.performance.now(),
+	totalDelta = endedAt - startedAt,
+	minutesDelta = Math.floor( totalDelta / 60000 ),
+	secondsDelta = totalDelta - ( minutesDelta * 60000 ),
+	secondsDeltaRounded = Math.round( secondsDelta ) / 1000
+
+	console.log( '\nEnded at\n', new Date() )
+	console.log( 
+
+		'\nFound', ( primes.length ).toLocaleString(), 'primes', 
+		'under', ( searchRange ).toLocaleString(),
+		'in', minutesDelta, 'minutes and', secondsDeltaRounded, 'seconds.'
+	)
+	// console.log( JSON.stringify( primes ))
+}
+
+
+
+
+//  Unclear to me if there’s any penalty to starting
+//  as soon as the browser claims its ready
+//  or if we just wait a tick instead.
+
+window.addEventListener( 'DOMContentLoaded', function(){ run( searchRange ) })
+// window.setTimeout( function(){ run( searchRange )}, 2000 )
+
+
+
+
+</script>
+</html>

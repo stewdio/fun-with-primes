@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+
+</body>
+<script>
+
+
+var 
+primes = [ 2 ],
+testLength = 1000 * 100//  100 thousand
+//testLength = 1000 * 1000 * 10//  10 million
+
+console.log( primes.length, primes[ 0 ] )
+
+var startedAt = window.performance.now()
+for( var n = 3; n  < testLength; n ++ ){
+
+	var isPrime = true
+	for( var p = 0; p < primes.length; p ++ ){
+
+		var q = n / primes[ p ]
+		//if( q === parseInt( q, 10 )){
+		if( q === Math.round( q )){
+
+			isPrime = false
+			break
+		}
+	}
+	if( isPrime ){
+
+		primes.push( n )
+		// console.log( primes.length, n )
+	}
+}
+
+var 
+endedAt = window.performance.now(),
+timeDelta = endedAt - startedAt
+
+console.log( 
+
+	'Found', ( primes.length ).toLocaleString(), 'primes', 
+	'under', ( testLength ).toLocaleString(),
+	'in', timeDelta / 1000, 'seconds.'
+)
+
+/*
+
+Found    168 primes under     1,000 in  0.0035150000039720908 seconds.
+Found  1,229 primes under    10,000 in  0.017930000001797453 seconds.
+Found  9,592 primes under   100,000 in  0.5444149999966612 seconds.
+Found 78,498 primes under 1,000,000 in 34.01142500000424 seconds.
+
+
+
+
+Found 168 primes under 1,000 in 0.0035 seconds.
+Found 1,229 primes under 10,000 in 0.0179 seconds.
+Found 9,592 primes under 100,000 in 0.5444 seconds.
+Found 78,498 primes under 1,000,000 in 34.011 seconds.
+
+*/
+
+
+</script>
+</html>

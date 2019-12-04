@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+
+</body>
+<script>
+
+
+const
+primes = [ 2 ],
+// testRange = 1000 * 10//  10 thousand
+// testRange = 1000 * 100//  100 thousand ~ 0.01 seconds
+testRange = 1000 * 1000//  1 million ~ 4.7 seconds
+// testRange = 1000 * 1000 * 10//  10 million ~ 3.8 minutes
+
+// console.log( primes.length, primes[ 0 ] )
+
+console.log( '\nStarted at\n', new Date() )
+const startedAt = window.performance.now()
+
+
+
+
+
+
+for( let n = 3; n < testRange; n ++ ){
+
+	let isPrime = true
+	let nHalf = Math.round( n / 3 )	
+	let p = 0
+	
+	while( p < primes.length ){ 
+
+		if( primes[ p ] > nHalf ) break
+		if( n % primes[ p ] === 0 ){ isPrime = false; break }
+		p ++ 
+	}
+	if( isPrime ) primes.push( n )
+}
+
+
+
+
+const
+endedAt = window.performance.now(),
+totalDelta = endedAt - startedAt,
+minutesDelta = Math.floor( totalDelta / 60000 ),
+secondsDelta = totalDelta - ( minutesDelta * 60000 ),
+secondsDeltaRounded = Math.round( secondsDelta ) / 1000
+
+
+console.log( '\nEnded at\n', new Date() )
+console.log( 
+
+	'\nFound', ( primes.length ).toLocaleString(), 'primes', 
+	'under', ( testRange ).toLocaleString(),
+	'in', minutesDelta, 'minutes and', secondsDeltaRounded, 'seconds.'
+)
+
+/*
+
+Found   1,230 primes under     10,000 in  0 minutes and  0.005 seconds.
+Found   9,593 primes under    100,000 in  0 minutes and  0.065 seconds.
+Found  78,499 primes under  1,000,000 in  0 minutes and  3.176 seconds.
+Found 664,580 primes under 10,000,000 in  3 minutes and 48.359 seconds.
+
+
+Found 1,230 primes under 10,000 in 0.005 seconds.
+Found 9,593 primes under 100,000 in 0.065 seconds.
+Found 78,499 primes under 1,000,000 in 3.176 seconds.
+Found 664,580 primes under 10,000,000 in 3 minutes and 48.359 seconds.
+
+
+*/
+
+
+</script>
+</html>
