@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<body></body>
+<script src="gpu-browser.min.js"></script>
+<script>
+
+
+
+
+//  Search range is 1 hundred.
+//  Expecting 25 primes.
+//  Best result so far: 0.018 seconds
+
+// const 
+// searchRange   = 100,
+// expectedTotal =  25
+
+
+
+
+//  Search range is 1 thousand.
+//  Expecting 168 primes.
+//  Best result so far: 0.21 seconds
+
+// const 
+// searchRange   = 1000,
+// expectedTotal =  168
+
+
+
+
+//  Search range is 10 thousand.
+//  Expecting 1,229 primes.
+//  Best result so far: 0.24 seconds
+
+// const 
+// searchRange   = 1000 * 10,
+// expectedTotal =  1229
+
+
+
+
+//  Search range is 100 thousand.
+//  Expecting 9,592 primes.
+//  Best result so far: 0.109 seconds (HOW?!??!!)
+
+const 
+searchRange   = 1000 * 100,
+expectedTotal = 9592
+
+
+
+
+//  Search range is 1 million.
+//  Expecting 78,498 primes.
+//  Best result so far: 8.422 seconds (THAT IS BAD!! Was 0.046 seconds on CPU!)
+
+// const 
+// searchRange   = 1000 * 1000,
+// expectedTotal = 78498
+
+
+
+/*
+
+================================================================================
+
+	USING HIGHER SEARCH RANGES BELOW MAY RESULT IN YOUR COMPUTER CRASHING !!!
+
+================================================================================
+
+
+*/
+
+
+
+/*
+
+	THIS ONE FAILS ON THE GPU !!! DOES NOT FINISH FINDING PRIMES.
+	ALSO EXECUTION TIME TOTALLY SUCKS!
+
+*/
+//  Search range is 10 million.
+//  Expecting 664,579 primes.
+//  Best result so far: 0.862 seconds.
+
+// const 
+// searchRange   = 1000 * 1000 * 10,
+// expectedTotal = 664579
+
+
+
+
+//  Search range is 100 million.
+//  Expecting 5,761,455 primes.
+//  Best result so far: 18.404 seconds.
+
+// const 
+// searchRange   = 1000 * 1000 * 100,
+// expectedTotal = 5761455
+
+
+
+
+//  Search range is 1 billion.
+//  Expecting 50,847,534 primes.
+//  Best result so far: 7.65 minutes.
+//  Found 50,847,534 primes under 1,000,000,000 in 7 minutes and 38.76 seconds.
+
+// const 
+// searchRange   = 1000 * 1000 * 1000,
+// expectedTotal = 50847534
+
+
+
+
+//  All found primes will be stored in this array.
+//  We’ll feed it a single value: 2. 
+
+//const primes = [ 2 ]
+
+const searchBuffer = Math.ceil( searchRange / 2 - 1.5 )
+// const primes = new Array( searchBuffer ).fill( 2 )
+
+console.log( 'searchBuffer', searchBuffer )
+
+
+
+
+const gpu = new GPU( 'webgl2' )
+const kernel = gpu
+	.createKernel( function(){
+		
+
+		function mod( n, q ){
+
+			const t = n / q
+			return n - ( q * t )
+		}
+
+
+		//  Let’s begin our search with the number 3,
+		//  and only search for odd numbers from there on.
+
+		const n = 3 + 2 * this.thread.x
+		
+		// const n = this.thread.x
+
+		
+		
+
+
+		let isPrime = true
+		
+
+		for( let i = 3; i < n; i ++ ){
+
+			// if( i == 3 && n % 3 === 0 ) return 9999
+			// if( n % 3 === 0 ){ isPrime = false; break }
+
+
+			// if( n === 91 ){ isPrime = false; break }//  WORKS! Correctltly filters out #91.
+			// if( n === 91 && 91 % 7 === 0 ){ isPrime = false; break }//  WORKS! Correctltly filters out #91.
+			// if( n === 91 &&  n % 7 === 0 ){ isPrime = false; break }//  WORKS! Correctltly filters out #91.
+			// if( n === 91 &&  n % 7 === 0 && i === 7 ){ isPrime = false; break }//  WORKS! Correctltly filters out #91.
+			// if( n === 91 &&  n % 7 === 0 && i === 7 && n  % i === 0 ){ isPrime = false; break }//  DOES NOT FUCKING WORK OMFG!
+			// if( n === 91 &&  n % 7 === 0 && i === 7 && 91 % i === 0 ){ isPrime = false; break }//  DOES NOT FUCKING WORK OMFG!
+
+
+			// if( n % i === 0 ){ isPrime = false; break }//  This SHOULD work.
+
+			//if( mod( n, i ) === 0 ){ isPrime = false; break }
+
+			if( n - ( i * ( n / i )) === 0 ){ isPrime = false; break }
+			
+
+			// if( n % i === 0 ) isPrime = false
+			// if( n % 5 === 0 ){ isPrime = false; break }
+			// if( i * i > n ) break
+		}
+
+
+
+		if( isPrime ){ return n }
+		else { return 0 }
+
+		// return isPrime ? n : 0
+
+		
+
+	})
+	.setOutput([ searchBuffer ])
+	.setLoopMaxIterations( searchRange )
+	.setStrictIntegers( true )
+	.setTactic( 'speed' )
+
+
+
+
+
+
+function run( searchRange, expectedTotal ){
+
+
+	//  On your marks...
+
+	console.log( '\nStarted at\n', new Date(), '\n\n' )
+	const startedAt = window.performance.now()
+
+
+	//  EXECUTE ! EXECUTER ! EXECUTEST !
+
+	const computed = kernel()
+
+
+	//  That’s it, we’re done! What’s the stats man??
+
+	const
+	endedAt = window.performance.now(),
+	totalDelta = endedAt - startedAt,
+	minutesDelta = Math.floor( totalDelta / 60000 ),
+	secondsDelta = totalDelta - ( minutesDelta * 60000 ),
+	secondsDeltaRounded = Math.round( secondsDelta ) / 1000
+
+	console.log( '\nEnded at\n', new Date(), '\n\n' )
+	console.log( '\nExecution time was', minutesDelta, 'minutes and', secondsDeltaRounded, 'seconds.\n\n' )
+
+	console.log( 'computed', computed )
+	const filtered = computed.reduce( function( filtered, n ){
+
+		if( n !== 0 ) filtered.push( n )
+		return filtered
+
+	}, [ 2 ])
+	console.log( 'filtered', filtered )
+
+
+
+	console.log( 
+
+		'\n\nFound', ( filtered.length ).toLocaleString(), 'primes', 
+		'under', ( searchRange ).toLocaleString(), '\n\n\n'
+	)
+	const resultType = filtered.length === expectedTotal ? 'GOOD' : 'BAD'
+	console.log( 
+
+		'\n\nThis is a', resultType ,'result.\n\n\n'
+	)
+}
+
+
+
+
+//  Unclear to me if there’s any penalty to starting
+//  as soon as the browser claims its ready
+//  or if we just wait a tick instead.
+
+window.addEventListener( 'DOMContentLoaded', function(){ run( searchRange, expectedTotal ) })
+// window.setTimeout( function(){ run( searchRange )}, 2000 )
+// run( searchRange )
+
+
+
+
+
+
+
+
+
+
+
+
+
+</script>
+</html>

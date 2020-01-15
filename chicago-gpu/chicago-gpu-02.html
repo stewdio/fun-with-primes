@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<body></body>
+<script src="gpu-browser.min.js"></script>
+<script>
+
+
+
+
+//  Search range is 1 hundred.
+//  Expecting 25 primes.
+//  Best result so far: 0.018 seconds
+
+// const 
+// searchRange   = 100,
+// expectedTotal =  25
+
+
+
+
+//  Search range is 1 thousand.
+//  Expecting 168 primes.
+//  Best result so far: 0.02 seconds
+
+// const 
+// searchRange   = 1000,
+// expectedTotal =  168
+
+
+
+
+//  Search range is 10 thousand.
+//  Expecting 1,229 primes.
+//  Best result so far: 0.02 seconds
+
+// const 
+// searchRange   = 1000 * 10,
+// expectedTotal =  1229
+
+
+
+
+//  Search range is 100 thousand.
+//  Expecting 9,592 primes.
+//  Best GPU result so far: 0.025 seconds
+
+// const 
+// searchRange   = 1000 * 100,
+// expectedTotal = 9592
+
+
+
+
+//  Search range is 1 million.
+//  Expecting 78,498 primes.
+//  Best CPU result so far: 0.046 seconds
+//  Best GPU result so far: 0.053 seconds
+
+// const 
+// searchRange   = 1000 * 1000,
+// expectedTotal = 78498
+
+
+
+
+//  Search range is 10 million.
+//  Expecting 664,579 primes.
+//  Best CPU result so far: 0.862 seconds.
+//  Best GPU result so far: 0.594 seconds. THIS IS THE PERFORMANCE TURNING POINT.
+
+const 
+searchRange   = 1000 * 1000 * 10,
+expectedTotal = 664579
+
+
+
+
+//  Search range is 100 million.
+//  Expecting 5,761,455 primes.
+//  Best CPU result so far: 18.404 seconds.
+//  Best GPU result so far: 2.349 seconds.
+/*
+
+	THIS IS A BAAAAD RESULT !    :(
+	Only about 1/5th of the primes are found
+	perhaps due to integer overflow?!
+
+
+*/
+
+// const 
+// searchRange   = 1000 * 1000 * 100,
+// expectedTotal = 5761455
+
+
+
+
+/*
+
+================================================================================
+
+	USING HIGHER SEARCH RANGES BELOW MAY RESULT IN YOUR COMPUTER CRASHING !!!
+
+================================================================================
+
+
+My current pixels:
+3360 * 2054 = 6,901,440
+
+
+
+*/
+
+
+
+//  Search range is 1 billion.
+//  Expecting 50,847,534 primes.
+//  Best CPU result so far: 7.65 minutes.
+//  Found 50,847,534 primes under 1,000,000,000 in 7 minutes and 38.76 seconds.
+
+// const 
+// searchRange   = 1000 * 1000 * 1000,
+// expectedTotal = 50847534
+
+
+
+
+//  All found primes will be stored in this array.
+//  We’ll feed it a single value: 2. 
+
+//const primes = [ 2 ]
+
+const searchBuffer = Math.ceil( searchRange / 2 - 1.5 )
+// const primes = new Array( searchBuffer ).fill( 2 )
+
+console.log( 'searchBuffer size is ', searchBuffer.toLocaleString(), 'numbers long.' )
+
+
+
+
+const gpu = new GPU( 'webgl2' )
+const kernel = gpu
+	.createKernel( function(){
+	
+		//  Let’s begin our search with the number 3,
+		//  and only search for odd numbers from there on.
+
+		const n = 3 + 2 * this.thread.x
+
+
+		let isPrime = true	
+		for( let i = 3; i < n; i ++ ){
+
+			
+			//  There’s a bug in GPU.js’s modulo function
+			//  that causes it to sometimes fail
+			//  when a variable is used as the second argument.
+			//  As a result the following has occasional failures:
+			 // if( n % i === 0 ){ isPrime = false; break }
+			
+			//  Once I tried using my own custom modulo function
+			//  that solved it!
+			//  if( mod( n, i ) === 0 ){ isPrime = false; break }
+
+			//  But I found it was FASTER to just hardcode that
+			//  operation inline than to create a function
+			//  and then subsequently call it.
+
+			if( n - ( i * ( n / i )) === 0 ){ isPrime = false; break }
+			
+
+			//  This SIGNIFICANTLY cuts down the number of loops!
+			
+			if( i * i > n ) break
+		}
+		if( isPrime ){ return n }
+		else { return 0 }
+	})
+	.setOutput([ searchBuffer ])
+	.setLoopMaxIterations( searchRange )
+	.setStrictIntegers( true )
+	.setTactic( 'speed' )
+
+
+
+
+
+
+function run( searchRange, expectedTotal ){
+
+
+	//  On your marks...
+
+	console.log( '\nStarted at\n', new Date(), '\n\n' )
+	const startedAt = window.performance.now()
+
+
+	//  EXECUTE ! EXECUTER ! EXECUTEST !
+
+	const computed = kernel()
+
+
+	//  That’s it, we’re done! What’s the stats man??
+
+	const
+	endedAt = window.performance.now(),
+	totalDelta = endedAt - startedAt,
+	minutesDelta = Math.floor( totalDelta / 60000 ),
+	secondsDelta = totalDelta - ( minutesDelta * 60000 ),
+	secondsDeltaRounded = Math.round( secondsDelta ) / 1000
+
+	console.log( '\nEnded at\n', new Date(), '\n\n' )
+	console.log( '\nExecution time was', minutesDelta, 'minutes and', secondsDeltaRounded, 'seconds.\n\n' )
+
+
+	//  Now this part, intepreting the results,
+	//  will take some extra time.
+	//  But this is merely compiling results.
+
+	console.log( 'computed', computed )
+	const filtered = computed.reduce( function( filtered, n ){
+
+		if( n !== 0 ) filtered.push( n )
+		return filtered
+
+	}, [ 2 ])
+	console.log( 'filtered', filtered )
+
+
+
+	console.log( 
+
+		'\n\nFound', ( filtered.length ).toLocaleString(), 'primes', 
+		'under', ( searchRange ).toLocaleString(), '\n\n\n'
+	)
+	const resultType = filtered.length === expectedTotal ? 'GOOD' : 'BAD'
+	console.log( 
+
+		'\n\nThis is a', resultType ,'result.\n\n\n'
+	)
+}
+
+
+
+
+//  Unclear to me if there’s any penalty to starting
+//  as soon as the browser claims its ready
+//  or if we just wait a tick instead.
+
+window.addEventListener( 'DOMContentLoaded', function(){ run( searchRange, expectedTotal ) })
+// window.setTimeout( function(){ run( searchRange )}, 2000 )
+// run( searchRange )
+
+
+
+
+
+
+
+
+
+
+
+
+
+</script>
+</html>
