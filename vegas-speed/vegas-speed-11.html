@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<script>
+
+
+
+
+//  Search range is 1 million.
+//  Expecting 78,498 primes.
+//  Best result so far: 0.046 seconds
+
+const searchRange = 1000 * 1000
+
+
+
+
+//  Search range is 10 million.
+//  Expecting 664,579 primes.
+//  Best result so far: 0.862 seconds.
+
+// const searchRange = 1000 * 1000 * 10
+
+
+
+
+//  Search range is 100 million.
+//  Expecting 5,761,455 primes.
+//  Best result so far: 18.404 seconds.
+
+// const searchRange = 1000 * 1000 * 100
+
+
+
+
+//  Search range is 1 billion.
+//  Expecting 50,847,534 primes.
+//  Best result so far: 7.65 minutes.
+//  Found 50,847,534 primes under 1,000,000,000 in 7 minutes and 38.76 seconds.
+
+// const searchRange = 1000 * 1000 * 1000
+
+
+
+
+//  All found primes will be stored in this array.
+//  We’ll feed it a single value: 2. 
+
+const primes = new BigUint64Array( searchRange )//  0 to 2^64-1 ~ 18,446,744,073,709,552,000
+let primesIndex = 0
+primes[ primesIndex ] = 2n
+
+
+//  Important note about the “searchRange” argument here:
+//  If you don’t include it (and instead try to gleen its value
+//  from closure scope) then you will incur lookup overhead!
+
+const run = function( searchRange ){
+
+
+	//  let n, p, isPrime
+	//  Similar to above (though much less drastic)
+	//  it seems the cost of declaring these values repeatedly in block scope
+	//  is less than the lookup overhead?!
+	
+	console.log( '\n\nSearching for primes lower than', searchRange.toLocaleString(), '\n\n' )
+	console.log( '\nStarted at\n', new Date(), '\n\n' )
+	const startedAt = window.performance.now()
+	
+
+
+
+	for( let n = 3n; n < searchRange; n += 2n ){
+		
+		let isPrime = true
+		for( let p = 0; p < primesIndex + 1; p ++ ){
+
+
+			//  If this number n can be evenly divided 
+			//  by this previously discovered prime
+			//  then n is not a prime.
+			//  Using modulo is so much faster than full division!!
+			//  And therefore is faster than comparing quotient, q, to 
+			//  Math.round( q ) or parseInt( q, 10 ).
+
+			if( n % primes[ p ] === 0n ){ isPrime = false; break }
+
+
+			//  Multiplying a number againt itself is faster than Math.pow().
+			//  And all of this is WAY faster than Math.sqrt( n ).
+
+			if( primes[ p ] * primes[ p ] > n ) break
+		}
+		if( isPrime ) primes[ primesIndex ++ ] = n
+	}
+
+
+
+
+	const
+	endedAt = window.performance.now(),
+	totalDelta = endedAt - startedAt,
+	minutesDelta = Math.floor( totalDelta / 60000 ),
+	secondsDelta = totalDelta - ( minutesDelta * 60000 ),
+	secondsDeltaRounded = Math.round( secondsDelta ) / 1000
+
+	console.log( '\nEnded at\n', new Date(), '\n\n' )
+	
+
+
+	numberOfPrimesDiscovered = 0
+	for( let i = 0; i < primes.length; i ++ ){
+
+		if( primes[ i ] === 0n ) break
+		numberOfPrimesDiscovered ++
+	}
+
+
+	console.log( 
+
+		'\nFound', ( numberOfPrimesDiscovered ).toLocaleString(), 'primes', 
+		'under', ( searchRange ).toLocaleString(),
+		'in', minutesDelta, 'minutes and', secondsDeltaRounded, 'seconds.\n\n\n'
+	)
+	// console.log( JSON.stringify( primes ))
+}
+
+
+
+
+//  Unclear to me if there’s any penalty to starting
+//  as soon as the browser claims its ready
+//  or if we just wait a tick instead.
+
+window.addEventListener( 'DOMContentLoaded', function(){ run( searchRange ) })
+// window.setTimeout( function(){ run( searchRange )}, 2000 )
+// run( searchRange )
+
+
+
+
+</script>
+</html>

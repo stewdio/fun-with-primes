@@ -135,12 +135,15 @@ console.log( 'searchBuffer size is', searchBuffer.toLocaleString(), 'numbers lon
 
 
 
+//  https://github.com/gpujs/gpu.js/#declaring-variablesfunctions-within-kernels
+
 const gpu = new GPU( 'webgl2' )
 GPU.enableValidation()
 console.log( 'Is single precision float32 supported?', GPU.isSinglePrecisionSupported )
 const kernel = gpu
 	.createKernel( function(){
 	
+
 		//  Let’s begin our search with the number 3,
 		//  and only search for odd numbers from there on.
 
@@ -185,7 +188,31 @@ const kernel = gpu
 	// .setFixIntegerDivisionAccuracy( true )
 	.setOptimizeFloatMemory( true )
 
-//https://github.com/gpujs/gpu.js/#declaring-variablesfunctions-within-kernels
+
+/*
+
+
+Next steps:
+
+Need a single value prime attribute
+
+test every value in this.thread.x to see if its evenly divisible
+0 = not yet tested
+1 = definitely composite
+>1 = prime number
+mark the evenly divisible ones as composites (1)
+if prime attribute squared is larger than this.thread.x
+	and valuee still 0
+	then mark as prime, add to primes vector.
+
+	hmmm.... does primes vecetor need to be infinitely scalable?
+	even tho it will usually be only 1 unit long.
+
+	
+
+
+
+*/
 
 
 
@@ -237,7 +264,6 @@ function run( searchRange, expectedTotal ){
 	console.log( 'filtered', filtered )
 
 
-
 	console.log( 
 
 		'\n\nFound', ( filtered.length ).toLocaleString(), 'primes', 
@@ -260,11 +286,6 @@ function run( searchRange, expectedTotal ){
 window.addEventListener( 'DOMContentLoaded', function(){ run( searchRange, expectedTotal ) })
 // window.setTimeout( function(){ run( searchRange )}, 2000 )
 // run( searchRange )
-
-
-
-
-
 
 
 
