@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <body></body>
-<script src="gpu-browser.min.js"></script>
+<script src="gpu-browser.2.6.0.min.js"></script>
 <script>
 
 
@@ -35,7 +35,7 @@ const
 searchRange = 1000 * 10,
 expectedNumberOfPrimes = 1229,
 fastestCPU = 0,
-fastestGPU = 0.185
+fastestGPU = 0.18
 
 
 
@@ -47,7 +47,7 @@ fastestGPU = 0.185
 // searchRange = 1000 * 100,
 // expectedNumberOfPrimes = 9592,
 // fastestCPU = 0,
-// fastestGPU = 62.546
+// fastestGPU = 44.225
 
 
 
@@ -109,7 +109,8 @@ fastestGPU = 0.185
 //  to do many small computations in parallel.
 //  See https://github.com/gpujs/gpu.js/
 
-const gpu = new GPU( 'webgl2' )
+const gpu = new GPU({ mode: 'webgl2' })
+console.log( 'WebGL2 support:', GPU.isWebGL2Supported )
 
 
 //  What’s the field of numbers we’d like to test?
@@ -124,12 +125,13 @@ createSearchField = gpu.createKernel( function(){
 	if( this.thread.x === 0 ) return 2
 	return 3 + 2 * ( this.thread.x - 1 )
 
-},{
-
-	output: [ searchFieldLength ],
-	pipeline:  true,
-	immutable: false//true
 })
+.setPipeline( true )
+.setOutput([ searchFieldLength ])
+.setStrictIntegers( true )
+.setOptimizeFloatMemory( true )
+
+
 
 
 //  Here’s the heart of the matter.
@@ -186,19 +188,15 @@ const primify = gpu.createKernel( function( searchField, i ){
 	return n
 
 
-},{
-
-	// output: [ searchFieldLength ],
-	pipeline:  true,
-	immutable: false//true
 })
+.setPipeline( true )
 .setOutput([ searchFieldLength ])
-.setLoopMaxIterations( searchFieldLength )
-// .setStrictIntegers( true )
+.setStrictIntegers( true )
+.setOptimizeFloatMemory( true )
 .setTactic( 'speed' )
-// .setTactic( 'precision' )
 // .setFixIntegerDivisionAccuracy( true )
-// .setOptimizeFloatMemory( true )
+// .setTactic( 'precision' )
+
 
 
 
@@ -221,6 +219,8 @@ console.log(
 	'numbers.\n\n'
 )
 searchField = createSearchField()
+
+
 
 
 //  On your marks...
