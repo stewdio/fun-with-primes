@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<body></body>
+<script src="gpu-browser.2.6.4.min.js"></script>
+<script>
+
+
+
+
+//  100.
+
+// const 
+// searchRange = 100,
+// expectedNumberOfPrimes = 25
+// fastestCPU = 0,
+// fastestGPU = 0.014
+
+
+
+
+//  1 thousand.
+
+// const 
+// searchRange = 1000,
+// expectedNumberOfPrimes = 168,
+// fastestCPU = 0,
+// fastestGPU = 0.017
+
+
+
+
+//  10 thousand.
+
+// const 
+// searchRange = 1000 * 10,
+// expectedNumberOfPrimes = 1229,
+// fastestCPU = 0,
+// fastestGPU = 0.031
+
+
+
+
+//  100 thousand.
+
+const 
+searchRange = 1000 * 100,
+expectedNumberOfPrimes = 9592,
+fastestCPU = 0,
+fastestGPU = 0.957
+
+
+
+
+//  1 million.
+
+// const 
+// searchRange = 1000 * 1000,
+// expectedNumberOfPrimes = 78498,
+// fastestCPU =  0.046,
+// fastestGPU = 27.702
+
+
+
+
+//  10 million.
+
+// const 
+// searchRange = 1000 * 1000 * 10,
+// expectedNumberOfPrimes = 664579,
+// fastestCPU = 0.862,
+// fastestGPU = Infinity
+
+
+
+
+//  100 million.
+//	THIS IS A BAAAAD RESULT!  :(
+//	Only about 1/5th of the primes are found
+//	perhaps due to integer overflow?!
+
+// const 
+// searchRange = 1000 * 1000 * 100,
+// expectedNumberOfPrimes = 5761455,
+// fastestCPU = 18.404,
+// fastestGPU = Infinity
+
+
+
+
+//  1 billion.
+//  WARNING: THIS MAY CRASH YOUR MACHINE!!!!!!!!!!!
+
+// const 
+// searchRange = 1000 * 1000 * 1000,
+// expectedNumberOfPrimes = 50847534,
+// fastestCPU = 458.76,
+// fastestGPU = Infinity
+
+
+
+
+
+
+
+
+//  We’re going to use the GPU.js library
+//  to do many small computations in parallel.
+//  See https://github.com/gpujs/gpu.js/
+
+const gpu = new GPU({ mode: 'webgl2' })
+console.log( 'WebGL2 support:', GPU.isWebGL2Supported )
+
+
+//  What’s the field of numbers we’d like to test?
+//  This is SMALLER than the search range
+//  because we can eliminate even numbers 
+//  and the number 2 right from the start.
+
+const 
+searchFieldLength = Math.ceil( searchRange / 2 - 1.5 ),
+createSearchField = gpu.createKernel( function(){
+
+	if( this.thread.x === 0 ) return 2
+	return 3 + 2 * ( this.thread.x - 1 )
+
+})
+.setPipeline( true )
+.setOutput([ searchFieldLength ])
+// .setStrictIntegers( true )
+// .setOptimizeFloatMemory( true )
+
+
+
+
+//  STRATEGY: 
+//  Break the problem down in to multiple rendering loops.
+//  This removes duplicated efforts to knockout lower composites
+//  because each loop resolves primes / composites below #i
+//  so in subsequent loops we just return 0 or n
+//  instead of testing p * p > n or n % p === 0.
+
+const primify = gpu.createKernel( function( searchField, i ){
+	
+	const n = searchField[ this.thread.x ]
+
+
+	//  If this number has already been marked as “composite”
+	//  ie. we’ve zeroed it out,
+	//  then simply return that flag and bail now.
+	
+	if( n === 0 ) return 0
+	
+
+	//  What’s the number we wish to test by?
+
+	const p = searchField[ i ]
+	
+
+	//  If the test number has been marked as “composite”
+	//  then we need to bail by returning whatever value
+	//  we entered in to this loop with.
+
+	if( p === 0 ) return n
+
+
+	//  We don’t want to test against ourselves,
+	//  that would lead to n % p === 0 !
+
+	if( n === p ) return n
+
+
+	//  If we’ve crossed the “halfway point”
+	//  between zero and this number
+	//  and it still hasn’t been marked as “prime”
+	//  congratulations, we should do so now.
+	//  The idea here is it’s faster to compute p * p
+	//  and bail now, than to do more % operations.
+
+	if( p * p > n ) return n
+
+
+	//  If this number is evenly divisible by this prime
+	//  then we can mark it as “composite”
+	//  thereby removing it from our search.
+
+	if( n % p === 0 ) return 0
+
+
+	//  Still unknown if this is prime or composite.
+	//  Put it back in the pool for further inspection.
+
+	return n
+
+
+})
+.setPipeline( true )
+.setOutput([ searchFieldLength ])
+// .setStrictIntegers( true )//  Seems to have no effect on my particular case.
+// .setOptimizeFloatMemory( true )//  This really seems to slow things down.
+// .setTactic( 'speed' )//  Seems to have no effect on my particular case.
+// .setFixIntegerDivisionAccuracy( true )
+// .setTactic( 'precision' )
+
+
+
+
+
+
+
+
+let
+searchField,
+computed, 
+r = 0
+
+
+console.log( 
+
+	'\n\nWe are searching for prime numbers lower than', 
+	searchRange.toLocaleString(),
+	'\nwhich gives us a searchFieldLength of', 
+	searchFieldLength.toLocaleString(), 
+	'numbers.\n\n'
+)
+searchField = createSearchField()
+
+
+
+
+//  On your marks...
+
+console.log( '\nStarted at\n', new Date(), '\n\n' )
+const startedAt = window.performance.now()
+
+
+//  EXECUTE ! EXECUTER ! EXECUTEST !
+
+computed = primify( searchField, 0 )
+for( let i = 0; i < searchFieldLength; i ++ ){
+// for( let i = 0; i < 10; i ++ ){	
+
+	// computed = primify( computed, i )
+	const prevComputed = computed
+	computed = primify( computed, i )
+	prevComputed.delete()
+}
+/*
+window.requestAnimationFrame( render )
+function render(){
+
+	computed = kernel( computed, r )
+	if( r < searchFieldLength ){
+		
+		r ++
+		window.requestAnimationFrame( render )
+	}
+}
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//  That’s it, we’re done! What’s the stats man??
+
+const
+endedAt = window.performance.now(),
+totalDelta = endedAt - startedAt,
+totalDeltaSeconds = totalDelta / 1000,
+minutesDelta = Math.floor( totalDelta / 60000 ),
+secondsDelta = totalDelta - ( minutesDelta * 60000 ),
+secondsDeltaRounded = Math.round( secondsDelta ) / 1000
+
+console.log( '\nEnded at\n', new Date(), '\n\n' )
+console.log( '\nExecution time was', minutesDelta, 'minutes and', secondsDeltaRounded, 'seconds.\n\n' )
+
+createSearchField.destroy()
+primify.destroy()
+
+
+
+
+//  Now this part, intepreting the results,
+//  will take some extra time.
+//  But this is merely compiling results.
+
+console.log( 'computed', computed.toArray() )
+const filtered = computed.toArray().reduce( function( filtered, n ){
+
+	if( n > 0 ) filtered.push( n )
+	return filtered
+
+}, [])
+console.log( 'filtered', filtered )
+
+
+console.log( 
+
+	'\n\nFound', ( filtered.length ).toLocaleString(), 'primes', 
+	'under', ( searchRange ).toLocaleString(), '\n\n\n'
+)
+
+
+
+
+//  Did we achieve what we set out to do?
+
+const resultIsCorrect = filtered.length === expectedNumberOfPrimes
+console.log( 
+
+	'\n\nThis result is', 
+	( resultIsCorrect ? 'CORRECT!' : 'F’ING TERRIBLE.' ),
+	'\n\n\n'
+)
+if( resultIsCorrect ){
+
+
+	//  Let’s only compare the CPU and GPU records
+	//  if we have non-zero data for the CPU record.
+
+	if( fastestCPU > 0 ){
+
+		if( totalDeltaSeconds < fastestCPU ){
+
+			console.log( '\n\nGood: The GPU was faster, as it should be. CPU record was:', fastestCPU, 'seconds\n\n' )
+		}
+		else {
+
+			console.log( '\n\nHuh. Seems the CPU record was faster:', fastestCPU, 'seconds.\n\n' )
+		}
+	}
+
+
+
+	//  If this is a good result
+	//  and we’ve got a speed record on our hands...
+
+	if( totalDeltaSeconds < fastestGPU ){
+
+		console.log( 
+
+			'\n\n',
+			 totalDeltaSeconds.toLocaleString(), 
+			'seconds',
+			'\n\n',
+			'!!!  THIS IS A NEW GPU RECORD FOR ME  !!!',
+			'\n\n\n'
+		)
+	}
+	else {
+
+		console.log( '\n\n(Sorry, this did not beat our previous GPU record of', fastestGPU, 'seconds.)\n\n\n' )
+	}
+}
+
+
+
+
+
+
+
+
+</script>
+</html>
